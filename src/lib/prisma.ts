@@ -1,34 +1,28 @@
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  cachedClient: PrismaClient | undefined;
 };
 
-let prisma: PrismaClient;
+let _client: PrismaClient | undefined;
 
-function getPrismaClient() {
-  if (globalForPrisma.prisma) return globalForPrisma.prisma;
-  
-  const client = new PrismaClient({
-    log: ["error"],
-  });
-  
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = client;
+function getClient() {
+  if (!_client) {
+    _client = globalForPrisma.cachedClient ?? new PrismaClient({
+      log: ["error"],
+    });
   }
-  
-  return client;
+  return _client;
 }
 
-// Lazy initialization — PrismaClient is only created when first accessed
+// Lazy — PrismaClient only created on first property access at runtime
 export const prisma = new Proxy({} as PrismaClient, {
-  get(_, prop: string | symbol) {
-    if (typeof prop !== "string") return undefined;
-    const client = getPrismaClient();
-    const value = (client as any)[prop];
-    if (typeof value === "function") {
-      return (...args: any[]) => (value as Function).apply(client, args);
+  get(_target, prop) {
+    const client = getClient();
+    const val = (client as Record<string, unknown>)[prop as string];
+    if (typeof val === "function") {
+      return val.bind(client);
     }
-    return value;
+    return val;
   },
-}) as PrismaClient;
+});
