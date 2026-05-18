@@ -3,11 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
-import { Download, Loader2, ArrowLeft } from "lucide-react";
+import { Download, Loader2, ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { Invoice } from "@/types";
 
 interface InvoiceDetailProps {
   invoice: {
@@ -24,6 +23,30 @@ interface InvoiceDetailProps {
 export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
   const router = useRouter();
   const [downloading, setDownloading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [status, setStatus] = useState(invoice.status);
+
+  async function handleStatusUpdate(newStatus: string) {
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/invoices/${invoice.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Update failed");
+      setStatus(newStatus);
+      toast.success(
+        newStatus === "paid" ? "Invoice marked as paid" : "Invoice cancelled"
+      );
+      router.refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update invoice");
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   async function handleDownload() {
     setDownloading(true);
@@ -56,7 +79,9 @@ export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{invoice.invoiceNumber}</CardTitle>
-          <InvoiceStatusBadge status={invoice.status as "paid" | "pending" | "overdue" | "cancelled"} />
+          <InvoiceStatusBadge
+            status={status as "paid" | "pending" | "overdue" | "cancelled"}
+          />
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -66,15 +91,19 @@ export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              <p className="font-medium capitalize">{invoice.status}</p>
+              <p className="font-medium capitalize">{status}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Issued Date</p>
-              <p className="font-medium">{new Date(invoice.issuedDate).toLocaleDateString()}</p>
+              <p className="font-medium">
+                {new Date(invoice.issuedDate).toLocaleDateString()}
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Due Date</p>
-              <p className="font-medium">{new Date(invoice.dueDate).toLocaleDateString()}</p>
+              <p className="font-medium">
+                {new Date(invoice.dueDate).toLocaleDateString()}
+              </p>
             </div>
           </div>
           {invoice.description && (
@@ -83,10 +112,64 @@ export function InvoiceDetail({ invoice }: InvoiceDetailProps) {
               <p className="mt-1">{invoice.description}</p>
             </div>
           )}
-          <Button onClick={handleDownload} disabled={downloading}>
-            {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Download Invoice
-          </Button>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            {status === "pending" && (
+              <>
+                <Button
+                  onClick={() => handleStatusUpdate("paid")}
+                  disabled={updating}
+                  variant="default"
+                >
+                  {updating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                  )}
+                  Mark as Paid
+                </Button>
+                <Button
+                  onClick={() => handleStatusUpdate("cancelled")}
+                  disabled={updating}
+                  variant="destructive"
+                >
+                  {updating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <XCircle className="mr-2 h-4 w-4" />
+                  )}
+                  Cancel Invoice
+                </Button>
+              </>
+            )}
+            {status === "paid" && (
+              <Button
+                onClick={() => handleStatusUpdate("pending")}
+                disabled={updating}
+                variant="outline"
+              >
+                Reopen as Pending
+              </Button>
+            )}
+            {status === "cancelled" && (
+              <Button
+                onClick={() => handleStatusUpdate("pending")}
+                disabled={updating}
+                variant="outline"
+              >
+                Reopen as Pending
+              </Button>
+            )}
+            <Button onClick={handleDownload} disabled={downloading} variant="outline">
+              {downloading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Download
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

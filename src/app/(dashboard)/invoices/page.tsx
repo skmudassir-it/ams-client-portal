@@ -40,9 +40,17 @@ export default async function InvoicesPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
-        <p className="text-muted-foreground">View and download your invoices</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
+          <p className="text-muted-foreground">View and download your invoices</p>
+        </div>
+        <a
+          href="/invoices/new"
+          className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          New Invoice
+        </a>
       </div>
       <Suspense fallback={<Skeleton className="h-64 w-full" />}>
         <InvoiceList

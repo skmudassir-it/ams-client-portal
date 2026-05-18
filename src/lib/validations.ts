@@ -94,6 +94,36 @@ export const profileUpdateSchema = z.object({
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 
+// ── Invoice ──────────────────────────────────────────────
+export const invoiceSchema = z.object({
+  invoiceNumber: z
+    .string()
+    .min(1, "Invoice number is required")
+    .max(50, "Invoice number must be under 50 characters"),
+  amount: z.coerce
+    .number()
+    .min(0.01, "Amount must be at least $0.01")
+    .max(999999.99, "Amount must be under $999,999.99"),
+  currency: z.string().default("USD"),
+  status: z.enum(["pending", "paid", "cancelled"]).default("pending"),
+  dueDate: z.string().min(1, "Due date is required"),
+  description: z
+    .string()
+    .max(1000, "Description must be under 1000 characters")
+    .default(""),
+});
+
+export type InvoiceInput = z.infer<typeof invoiceSchema>;
+
+// ── Invoice Status Update ────────────────────────────────
+export const invoiceStatusSchema = z.object({
+  status: z.enum(["pending", "paid", "cancelled"], {
+    message: "Status must be one of: pending, paid, cancelled",
+  }),
+});
+
+export type InvoiceStatusInput = z.infer<typeof invoiceStatusSchema>;
+
 // ── Password Change ─────────────────────────────────────
 export const passwordChangeSchema = z
   .object({
