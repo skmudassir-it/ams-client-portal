@@ -26,6 +26,10 @@ export type Invoice = PrismaInvoice;
 export type Ticket = PrismaTicket;
 export type TicketReply = PrismaReply;
 
+export type InvoiceStatus = "paid" | "pending" | "overdue" | "cancelled";
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+export type TicketCategory = "billing" | "technical" | "general" | "account";
+
 // ── Dashboard Summary ────────────────────────────────────
 export type DashboardSummary = {
   totalInvoices: number;
