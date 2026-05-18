@@ -1,0 +1,75 @@
+// prisma/schema.prisma
+// AMS Client Portal — Database Schema
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  invoices       Invoice[]
+  supportTickets SupportTicket[]
+  ticketReplies  TicketReply[]
+
+  @@map("users")
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  invoiceNumber String   @unique @map("invoice_number")
+  amount        Float
+  currency      String   @default("USD")
+  status        String   @default("pending")  // pending | paid | overdue | cancelled
+  issuedDate    DateTime @map("issued_date")
+  dueDate       DateTime @map("due_date")
+  description   String   @default("")
+  pdfUrl        String?  @map("pdf_url")      // Path to stored PDF or external URL
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+model SupportTicket {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  category    String                        // billing | technical | general | account
+  subject     String
+  description String
+  status      String   @default("open")     // open | in_progress | resolved | closed
+  priority    String   @default("normal")   // low | normal | high | urgent
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies TicketReply[]
+
+  @@map("support_tickets")
+}
+
+model TicketReply {
+  id        String   @id @default(cuid())
+  ticketId  String   @map("ticket_id")
+  userId    String   @map("user_id")
+  message   String
+  isStaff   Boolean  @default(false) @map("is_staff")  // Differentiate staff replies
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_replies")
+}
